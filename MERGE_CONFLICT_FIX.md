@@ -1,38 +1,38 @@
-# Почему у вас «что-то не так» в PR
+# Почему PR не мержится сейчас
 
-На скриншоте видно не ошибку приложения, а **конфликт слияния**:
-- GitHub пишет: `This branch has conflicts that must be resolved`
-- Конфликтный файл: `script.js`
+На скриншоте видно: **не ошибка кода**, а конфликт слияния с `main` в файле `script.js`.
 
-Это значит, что в `main` уже изменили те же строки, что и в вашей ветке.
-
-## Как исправить (рекомендуется через git в терминале)
+## Что нужно сделать (точно для вашего случая)
 
 ```bash
+git checkout codex/improve-application-functionality-gu1ky1
 git fetch origin
-git checkout <ваша-ветка>
 git merge origin/main
 ```
 
-Дальше откройте `script.js`, найдите блоки:
+Дальше откройте `script.js`, удалите конфликтные маркеры:
 - `<<<<<<<`
 - `=======`
 - `>>>>>>>`
 
-Оставьте нужный итоговый вариант кода, удалите маркеры конфликта, затем:
+Оставьте итоговый рабочий вариант и выполните:
 
 ```bash
 git add script.js
-git commit -m "Resolve merge conflict with main in script.js"
-git push
+git commit -m "Resolve conflict with main in script.js"
+git push origin codex/improve-application-functionality-gu1ky1
 ```
 
-После push GitHub автоматически уберёт предупреждение о конфликте.
+После этого GitHub уберёт блок `This branch has conflicts that must be resolved`.
 
-## Если хотите без терминала
+---
+
+## Быстрый вариант без терминала
 1. В PR нажмите **Resolve conflicts**.
-2. Исправьте `script.js` прямо в веб-редакторе.
-3. Нажмите **Mark as resolved** и **Commit merge**.
+2. Исправьте `script.js` в веб-редакторе.
+3. Нажмите **Mark as resolved** → **Commit merge**.
 
-## Почему это случилось
-`script.js` активно менялся и в вашей ветке, и в `main`, поэтому Git не смог автоматически объединить изменения.
+---
+
+## Почему так повторяется
+Пока в `main` меняется `script.js`, а ваша ветка тоже меняет те же строки, GitHub снова может показывать конфликт до очередного sync с `main`.
