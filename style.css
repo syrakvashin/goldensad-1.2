@@ -87,3 +87,10 @@ input,select{width:100%;border:1px solid var(--line);border-radius:14px;padding:
 @media (max-width:900px){
   .herbicide-form-grid{grid-template-columns:1fr}
 }
+
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.install-btn{border:1px solid var(--line);background:#fff;color:var(--primary-dark);border-radius:10px;padding:8px 10px;font-weight:600;cursor:pointer}
+.install-btn:hover{background:#f3faf2}
+@media (max-width: 780px){
+  .install-btn{font-size:12px;padding:7px 9px}
+}
