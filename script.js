@@ -6,14 +6,39 @@ const LS_MEASUREMENTS='sprayer_measurements_v1';
 const LS_BLOCKS='sprayer_blocks_v2';
 const LS_WEATHER='sprayer_weather_location_v1';
 const LS_HERBICIDE='sprayer_herbicide_settings_v2';
+const LS_HERBICIDE_NOZZLES='sprayer_herbicide_nozzles_v1';
+const LS_CALC_SETTINGS='sprayer_calc_settings_v1';
 const defaultMeasurements=[{pressure:3,flow:0.635},{pressure:4,flow:0.75},{pressure:5,flow:0.86},{pressure:6,flow:1.0},{pressure:7,flow:1.074},{pressure:8,flow:1.152},{pressure:9,flow:1.25},{pressure:10,flow:1.313},{pressure:11,flow:1.359},{pressure:12,flow:1.463},{pressure:15,flow:1.641}];
 const defaultHerbicideSettings={spacing:4,flow:0.91,nozzles:4,stripWidth:1.10,speed:5,targetMin:250,targetMax:300,tank:800,blockId:''};
+const defaultHerbicideNozzles=[{id:id(),name:'IDK 120-03',flow:0.91},{id:id(),name:'Lechler 120-04',flow:1.07}];
+const defaultCalcSettings={norm:400,speed:8,nozzles:14,tank:3000};
 const defaultBlocks=[{id:id(),name:'Яблоня около навеса 0',culture:'Яблоня',year:2023,rows:73,scheme:'4 × 1 м',count:17380,area:7.5},{id:id(),name:'Слива около базы 1',culture:'Слива',year:2023,rows:102,scheme:'4,5 × 3 м',count:16040,area:23.4},{id:id(),name:'Яблоня около деревни 2',culture:'Яблоня',year:2023,rows:85,scheme:'4 × 1 м',count:11880,area:5.1},{id:id(),name:'Яблоня между сливой и берез 3',culture:'Яблоня',year:2023,rows:25,scheme:'4 × 1 м',count:10040,area:5.2},{id:id(),name:'Слива за березами 4',culture:'Слива',year:2024,rows:58,scheme:'4,5 × 3 м',count:11600,area:19.1},{id:id(),name:'Яблоня за дорогой 2023 5',culture:'Яблоня',year:2023,rows:49,scheme:'4 × 1 м',count:16050,area:7.9},{id:id(),name:'Яблоня за дорогой 2025 5',culture:'Яблоня',year:2025,rows:0,scheme:'4 × 1 м',count:26500,area:10.0}];
-let appState={mode:'from-block',activeTab:'calc',measurements:load(LS_MEASUREMENTS,defaultMeasurements),blocks:load(LS_BLOCKS,defaultBlocks),editingBlockId:null,stockRaw:[],stockFiltered:[],treatmentsRaw:[],treatmentGroups:[],treatmentsFilteredGroups:[],herbicideSettings:load(LS_HERBICIDE,defaultHerbicideSettings)};
+let appState={mode:'from-block',activeTab:'calc',measurements:load(LS_MEASUREMENTS,defaultMeasurements),blocks:load(LS_BLOCKS,defaultBlocks),editingBlockId:null,stockRaw:[],stockFiltered:[],treatmentsRaw:[],treatmentGroups:[],treatmentsFilteredGroups:[],herbicideSettings:load(LS_HERBICIDE,defaultHerbicideSettings),herbicideNozzles:normalizeHerbicideNozzles(load(LS_HERBICIDE_NOZZLES,defaultHerbicideNozzles)),calcSettings:load(LS_CALC_SETTINGS,defaultCalcSettings)};
 const els={};
-document.addEventListener('DOMContentLoaded',()=>{bindElements();bindEvents();initFromSavedWeather();renderTabs();renderMeasurements();renderBlocks();renderBlockSelect();initHerbicideInputs();toggleCalcModeFields();if(appState.blocks.length)updateCalcInputsFromBlock();calculate();calculateHerbicide();loadWeather();loadStock();loadAirMQ();loadTreatments();});
-function bindElements(){['menuButton','closeMenuButton','sidePanel','overlay','blockSelect','cultureInput','areaInput','normInput','speedInput','spacingInput','nozzlesInput','tankInput','resultCulture','resultArea','resultLiters','resultTanks','resultTotalFlow','resultFlowPerNozzle','resultPressure','pressureStatus','pressureLower','pressureUpper','blockSelectWrap','cultureField','areaField','spacingField','measurementPressure','measurementFlow','measurementsBody','saveMeasurementBtn','blockName','blockCulture','blockYear','blockRows','blockScheme','blockCount','blockArea','saveBlockBtn','blocksBody','blockEditNotice','weatherCity','weatherLat','weatherLon','weatherLoadBtn','weatherPlace','weatherStatus','weatherCards','stockBody','stockStatus','stockTypeFilter','stockSortBy','airReloadBtn','airInfo','airStatus','airTemp','airHum','airPms1','airPms25','airPms10','airTime','treatmentsStatus','treatmentPlaceFilter','treatmentWorkerFilter','treatmentChemFilter','treatmentTypeFilter','treatmentsDays','herbicideBlockSelect','herbicideFlow','herbicideNozzles','herbicideStripWidth','herbicideSpeed','herbicideTargetMin','herbicideTargetMax','herbicideTank','saveHerbicideSettingsBtn','herbicideStatus','herbicideNormStrip','herbicideAdvice','herbicideSpeedRange','herbicideTotalFlow','herbicideBlockAreaResult','herbicideGardenNorm','herbicideTreatedArea','herbicideTotalLiters','herbicideTanks'].forEach(id=>els[id]=document.getElementById(id));}
-function bindEvents(){document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{appState.activeTab=btn.dataset.tab;closePanels();renderTabs();}));document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>{appState.mode=btn.dataset.mode;document.querySelectorAll('.subtab-btn').forEach(x=>x.classList.toggle('active',x===btn));toggleCalcModeFields();if(appState.mode==='from-block')updateCalcInputsFromBlock();calculate();}));['normInput','speedInput','spacingInput','nozzlesInput','tankInput','cultureInput','areaInput'].forEach(id=>els[id].addEventListener('input',calculate));els.blockSelect.addEventListener('change',()=>{updateCalcInputsFromBlock();calculate();});els.menuButton.addEventListener('click',openMenu);els.closeMenuButton.addEventListener('click',closeMenu);els.overlay.addEventListener('click',closeMenu);document.querySelectorAll('.side-link').forEach(btn=>btn.addEventListener('click',()=>{openPanel(btn.dataset.panel);closeMenu();}));els.saveMeasurementBtn.addEventListener('click',saveMeasurement);els.saveBlockBtn.addEventListener('click',saveBlock);els.weatherLoadBtn.addEventListener('click',loadWeather);els.stockTypeFilter.addEventListener('change',applyStockFilters);els.stockSortBy.addEventListener('change',applyStockFilters);els.airReloadBtn.addEventListener('click',loadAirMQ);els.treatmentPlaceFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentWorkerFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentChemFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentTypeFilter.addEventListener('change',applyTreatmentsFilters);['herbicideFlow','herbicideNozzles','herbicideStripWidth','herbicideSpeed','herbicideTargetMin','herbicideTargetMax','herbicideTank'].forEach(id=>els[id]&&els[id].addEventListener('input',calculateHerbicide));if(els.herbicideBlockSelect)els.herbicideBlockSelect.addEventListener('change',()=>{updateHerbicideInputsFromBlock();calculateHerbicide();});if(els.saveHerbicideSettingsBtn)els.saveHerbicideSettingsBtn.addEventListener('click',saveHerbicideSettings);}
+document.addEventListener('DOMContentLoaded',()=>{bindElements();bindEvents();initFromSavedWeather();initCalcInputs();renderTabs();renderMeasurements();renderBlocks();renderBlockSelect();initHerbicideInputs();toggleCalcModeFields();if(appState.blocks.length)updateCalcInputsFromBlock();calculate();calculateHerbicide();loadWeather();loadStock();loadAirMQ();loadTreatments();});
+function bindElements(){['menuButton','closeMenuButton','sidePanel','overlay','blockSelect','cultureInput','areaInput','normInput','speedInput','spacingInput','nozzlesInput','tankInput','resetCalcSettingsBtn','resultCulture','resultArea','resultLiters','resultTanks','resultTotalFlow','resultFlowPerNozzle','resultPressure','pressureStatus','pressureLower','pressureUpper','blockSelectWrap','cultureField','areaField','spacingField','measurementPressure','measurementFlow','measurementsBody','saveMeasurementBtn','blockName','blockCulture','blockYear','blockRows','blockScheme','blockCount','blockArea','saveBlockBtn','blocksBody','blockEditNotice','weatherCity','weatherLat','weatherLon','weatherLoadBtn','weatherPlace','weatherStatus','weatherCards','stockBody','stockStatus','stockTypeFilter','stockSortBy','airReloadBtn','airInfo','airStatus','airTemp','airHum','airPms1','airPms25','airPms10','airTime','treatmentsStatus','treatmentPlaceFilter','treatmentWorkerFilter','treatmentChemFilter','treatmentTypeFilter','treatmentsDays','herbicideBlockSelect','herbicideFlow','herbicideNozzles','herbicideStripWidth','herbicideSpeed','herbicideTargetMin','herbicideTargetMax','herbicideTank','saveHerbicideSettingsBtn','resetHerbicideSettingsBtn','herbicideStatus','herbicideNormStrip','herbicideAdvice','herbicideSpeedRange','herbicideTotalFlow','herbicideBlockAreaResult','herbicideGardenNorm','herbicideTreatedArea','herbicideTotalLiters','herbicideTanks','herbicideNozzlePreset','herbicideNozzleName','herbicideNozzleFlow','saveHerbicideNozzleBtn','herbicideNozzlesBody'].forEach(id=>els[id]=document.getElementById(id));}
+function bindEvents(){document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{appState.activeTab=btn.dataset.tab;closePanels();renderTabs();}));document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>{appState.mode=btn.dataset.mode;document.querySelectorAll('.subtab-btn').forEach(x=>x.classList.toggle('active',x===btn));toggleCalcModeFields();if(appState.mode==='from-block')updateCalcInputsFromBlock();calculate();}));['normInput','speedInput','spacingInput','nozzlesInput','tankInput','cultureInput','areaInput'].forEach(id=>els[id].addEventListener('input',()=>{saveCalcSettings();calculate();}));els.blockSelect.addEventListener('change',()=>{updateCalcInputsFromBlock();calculate();});els.menuButton.addEventListener('click',openMenu);els.closeMenuButton.addEventListener('click',closeMenu);els.overlay.addEventListener('click',closeMenu);document.querySelectorAll('.side-link').forEach(btn=>btn.addEventListener('click',()=>{openPanel(btn.dataset.panel);closeMenu();}));els.saveMeasurementBtn.addEventListener('click',saveMeasurement);els.saveBlockBtn.addEventListener('click',saveBlock);els.weatherLoadBtn.addEventListener('click',loadWeather);els.stockTypeFilter.addEventListener('change',applyStockFilters);els.stockSortBy.addEventListener('change',applyStockFilters);els.airReloadBtn.addEventListener('click',loadAirMQ);els.treatmentPlaceFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentWorkerFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentChemFilter.addEventListener('change',applyTreatmentsFilters);els.treatmentTypeFilter.addEventListener('change',applyTreatmentsFilters);['herbicideFlow','herbicideNozzles','herbicideStripWidth','herbicideSpeed','herbicideTargetMin','herbicideTargetMax','herbicideTank'].forEach(id=>els[id]&&els[id].addEventListener('input',calculateHerbicide));if(els.herbicideBlockSelect)els.herbicideBlockSelect.addEventListener('change',()=>{updateHerbicideInputsFromBlock();calculateHerbicide();});if(els.saveHerbicideSettingsBtn)els.saveHerbicideSettingsBtn.addEventListener('click',saveHerbicideSettings);if(els.resetCalcSettingsBtn)els.resetCalcSettingsBtn.addEventListener('click',resetCalcSettings);if(els.resetHerbicideSettingsBtn)els.resetHerbicideSettingsBtn.addEventListener('click',resetHerbicideSettings);if(els.herbicideNozzlePreset)els.herbicideNozzlePreset.addEventListener('change',applyHerbicideNozzlePreset);if(els.saveHerbicideNozzleBtn)els.saveHerbicideNozzleBtn.addEventListener('click',saveHerbicideNozzle);}
+function initCalcInputs(){
+  const s={...defaultCalcSettings,...appState.calcSettings};
+  if(els.normInput)els.normInput.value=s.norm;
+  if(els.speedInput)els.speedInput.value=s.speed;
+  if(els.nozzlesInput)els.nozzlesInput.value=s.nozzles;
+  if(els.tankInput)els.tankInput.value=s.tank;
+}
+function saveCalcSettings(){
+  appState.calcSettings={norm:toNum(els.normInput?.value),speed:toNum(els.speedInput?.value),nozzles:toNum(els.nozzlesInput?.value),tank:toNum(els.tankInput?.value)};
+  save(LS_CALC_SETTINGS,appState.calcSettings);
+}
+function resetCalcSettings(){
+  appState.calcSettings={...defaultCalcSettings};
+  save(LS_CALC_SETTINGS,appState.calcSettings);
+  initCalcInputs();
+  calculate();
+}
+function normalizeHerbicideNozzles(rows){
+  const list=Array.isArray(rows)?rows:[];
+  return list.map(item=>({id:String(item?.id||id()),name:String(item?.name||'').trim(),flow:toNum(item?.flow)})).filter(item=>item.name&&item.flow>0);
+}
 function renderTabs(){document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===appState.activeTab));document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.remove('active'));const target=document.getElementById(`tab-${appState.activeTab}`);if(target)target.classList.add('active');}
 function openPanel(name){closeTabs();document.querySelectorAll('.panel-content').forEach(sec=>sec.classList.remove('active'));const el=document.getElementById(`panel-${name}`);if(el)el.classList.add('active');}
 function closePanels(){document.querySelectorAll('.panel-content').forEach(sec=>sec.classList.remove('active'));}
@@ -43,6 +68,44 @@ function initHerbicideInputs(){
   });
   if(els.herbicideBlockSelect&&s.blockId)els.herbicideBlockSelect.value=s.blockId;
   if(!s.blockId&&appState.blocks.length){updateHerbicideInputsFromBlock(false);}
+  renderHerbicideNozzles();
+}
+function renderHerbicideNozzles(){
+  if(!els.herbicideNozzlePreset||!els.herbicideNozzlesBody)return;
+  fillSelect(els.herbicideNozzlePreset,'Ручной ввод',appState.herbicideNozzles.map(n=>n.id));
+  [...els.herbicideNozzlePreset.options].forEach(opt=>{
+    if(opt.value==='all')opt.value='';
+    const row=appState.herbicideNozzles.find(n=>n.id===opt.value);
+    if(row)opt.textContent=`${row.name} (${fmt(row.flow,3)} л/мин)`;
+  });
+  els.herbicideNozzlesBody.innerHTML='';
+  appState.herbicideNozzles.forEach(n=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${escapeHtml(n.name)}</td><td>${fmt(n.flow,3)}</td><td><button class="action-btn" data-herbicide-nozzle-remove="${n.id}">Удалить</button></td>`;
+    els.herbicideNozzlesBody.appendChild(tr);
+  });
+  els.herbicideNozzlesBody.querySelectorAll('[data-herbicide-nozzle-remove]').forEach(btn=>btn.addEventListener('click',()=>removeHerbicideNozzle(btn.dataset.herbicideNozzleRemove)));
+}
+function saveHerbicideNozzle(){
+  const name=(els.herbicideNozzleName?.value||'').trim();
+  const flow=toNum(els.herbicideNozzleFlow?.value);
+  if(!name||!(flow>0))return;
+  appState.herbicideNozzles.push({id:id(),name,flow});
+  save(LS_HERBICIDE_NOZZLES,appState.herbicideNozzles);
+  if(els.herbicideNozzleName)els.herbicideNozzleName.value='';
+  if(els.herbicideNozzleFlow)els.herbicideNozzleFlow.value='';
+  renderHerbicideNozzles();
+}
+function removeHerbicideNozzle(nozzleId){
+  appState.herbicideNozzles=appState.herbicideNozzles.filter(n=>String(n.id)!==String(nozzleId));
+  save(LS_HERBICIDE_NOZZLES,appState.herbicideNozzles);
+  renderHerbicideNozzles();
+}
+function applyHerbicideNozzlePreset(){
+  const nozzle=appState.herbicideNozzles.find(n=>String(n.id)===String(els.herbicideNozzlePreset?.value));
+  if(!nozzle)return;
+  if(els.herbicideFlow)els.herbicideFlow.value=nozzle.flow;
+  calculateHerbicide();
 }
 function getHerbicideBlock(){
   return appState.blocks.find(b=>String(b.id)===String(els.herbicideBlockSelect?.value))||null;
@@ -78,6 +141,12 @@ function saveHerbicideSettings(showNotice=true){
     els.herbicideAdvice.textContent='Настройки сохранены.';
     setTimeout(()=>calculateHerbicide(),900);
   }
+}
+function resetHerbicideSettings(){
+  appState.herbicideSettings={...defaultHerbicideSettings,blockId:els.herbicideBlockSelect?.value||''};
+  save(LS_HERBICIDE,appState.herbicideSettings);
+  initHerbicideInputs();
+  calculateHerbicide();
 }
 function calculateHerbicide(){
   if(!els.herbicideFlow)return;
@@ -150,3 +219,33 @@ function formatDateRu(dateStr){const d=new Date(dateStr);return d.toLocaleDateSt
 function formatDateTimeRu(dateStr){const d=new Date(dateStr);return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
 function escapeHtml(text){return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');}
 function id(){return Math.random().toString(36).slice(2,10);}
+
+let deferredInstallPrompt = null;
+const installAppBtn = document.getElementById('installAppBtn');
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installAppBtn) installAppBtn.hidden = false;
+});
+
+if (installAppBtn) {
+  installAppBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installAppBtn.hidden = true;
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  if (installAppBtn) installAppBtn.hidden = true;
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
