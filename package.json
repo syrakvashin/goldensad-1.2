@@ -1,0 +1,19 @@
+{
+  "name": "goldensad",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Goldensad Android wrapper via Capacitor",
+  "scripts": {
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:build": "cd android && ./gradlew assembleDebug",
+    "android:bootstrap": "./scripts_bootstrap_android.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
