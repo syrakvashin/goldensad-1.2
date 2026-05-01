@@ -4,7 +4,6 @@
   "private": true,
   "description": "Goldensad Android wrapper via Capacitor",
   "scripts": {
-    "build": "mkdir -p dist && cp -R index.html style.css script.js manifest.webmanifest sw.js icons dist/",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "android:build": "cd android && ./gradlew assembleDebug",
