@@ -63,6 +63,44 @@ function initHerbicideInputs(){
   });
   if(els.herbicideBlockSelect&&s.blockId)els.herbicideBlockSelect.value=s.blockId;
   if(!s.blockId&&appState.blocks.length){updateHerbicideInputsFromBlock(false);}
+  renderHerbicideNozzles();
+}
+function renderHerbicideNozzles(){
+  if(!els.herbicideNozzlePreset||!els.herbicideNozzlesBody)return;
+  fillSelect(els.herbicideNozzlePreset,'Ручной ввод',appState.herbicideNozzles.map(n=>n.id));
+  [...els.herbicideNozzlePreset.options].forEach(opt=>{
+    if(opt.value==='all')opt.value='';
+    const row=appState.herbicideNozzles.find(n=>n.id===opt.value);
+    if(row)opt.textContent=`${row.name} (${fmt(row.flow,3)} л/мин)`;
+  });
+  els.herbicideNozzlesBody.innerHTML='';
+  appState.herbicideNozzles.forEach(n=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${escapeHtml(n.name)}</td><td>${fmt(n.flow,3)}</td><td><button class="action-btn" data-herbicide-nozzle-remove="${n.id}">Удалить</button></td>`;
+    els.herbicideNozzlesBody.appendChild(tr);
+  });
+  els.herbicideNozzlesBody.querySelectorAll('[data-herbicide-nozzle-remove]').forEach(btn=>btn.addEventListener('click',()=>removeHerbicideNozzle(btn.dataset.herbicideNozzleRemove)));
+}
+function saveHerbicideNozzle(){
+  const name=(els.herbicideNozzleName?.value||'').trim();
+  const flow=toNum(els.herbicideNozzleFlow?.value);
+  if(!name||!(flow>0))return;
+  appState.herbicideNozzles.push({id:id(),name,flow});
+  save(LS_HERBICIDE_NOZZLES,appState.herbicideNozzles);
+  if(els.herbicideNozzleName)els.herbicideNozzleName.value='';
+  if(els.herbicideNozzleFlow)els.herbicideNozzleFlow.value='';
+  renderHerbicideNozzles();
+}
+function removeHerbicideNozzle(nozzleId){
+  appState.herbicideNozzles=appState.herbicideNozzles.filter(n=>String(n.id)!==String(nozzleId));
+  save(LS_HERBICIDE_NOZZLES,appState.herbicideNozzles);
+  renderHerbicideNozzles();
+}
+function applyHerbicideNozzlePreset(){
+  const nozzle=appState.herbicideNozzles.find(n=>String(n.id)===String(els.herbicideNozzlePreset?.value));
+  if(!nozzle)return;
+  if(els.herbicideFlow)els.herbicideFlow.value=nozzle.flow;
+  calculateHerbicide();
 }
 
 
