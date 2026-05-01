@@ -7,8 +7,6 @@
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "android:build": "cd android && ./gradlew assembleDebug",
-    "android:bootstrap": "./scripts_bootstrap_android.sh",
-    "check:conflicts": "./scripts/check_conflict_markers.sh"
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",
