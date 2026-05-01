@@ -1,0 +1,14 @@
+name: Conflict Marker Check
+
+on:
+  pull_request:
+  push:
+    branches: ["main", "work"]
+
+jobs:
+  check-conflict-markers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify no merge markers in key files
+        run: ./scripts/check_conflict_markers.sh
